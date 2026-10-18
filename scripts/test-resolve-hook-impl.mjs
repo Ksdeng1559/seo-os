@@ -34,7 +34,9 @@ export async function resolve(specifier, context, nextResolve) {
     next.startsWith("./") ||
     next.startsWith("../") ||
     next.startsWith("file://") ||
-    next.startsWith("/");
+    next.startsWith("/") ||
+    // Windows drive-letter absolute path, e.g. G:\foo or G:/foo.
+    /^[a-zA-Z]:[\\/]/.test(next);
   if (looksLikeFile) {
     const candidate = next.startsWith("file://") ? fileURLToPath(next) : next;
     const absolute = path.isAbsolute(candidate)
@@ -51,6 +53,13 @@ export async function resolve(specifier, context, nextResolve) {
         }
       }
     }
+  }
+
+  // Windows: a bare drive-letter absolute path (e.g. G:\foo.ts) is not a
+  // valid ESM specifier — Node rejects the `g:` scheme. Convert any leftover
+  // drive-letter path to a file:// URL before delegating.
+  if (/^[a-zA-Z]:[\\/]/.test(next)) {
+    next = pathToFileURL(next).href;
   }
 
   return nextResolve(next, context);
