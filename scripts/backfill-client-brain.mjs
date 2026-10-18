@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(__filename), "..");
 
 if (process.env.SEO_OFFICE_TS_SCRIPT_HOOK !== "1") {
-  const hook = path.join(repoRoot, "scripts", "test-resolve-hook.mjs");
+  // Pass file:// URLs, not raw paths: on Windows a bare drive-letter path
+  // (G:\...) is rejected by Node's ESM loader as an unsupported `g:` scheme.
+  const hook = pathToFileURL(path.join(repoRoot, "scripts", "test-resolve-hook.mjs")).href;
   const child = spawnSync(
     process.execPath,
     [
